@@ -1,20 +1,22 @@
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
-import io
-import base64
 import streamlit as st
+from scipy.stats import pearsonr
 
 def create_ctt_report(df):
     # Assuming the first row contains the correct answers
     correct_answers = df.iloc[0]
+    students_answers_df = df.iloc[1:]
+    ctt_metrics = calculate_ctt_metrics(df)
+
     report = []
     
     # Extract all unique options from the dataset (excluding the first column)
     all_options = sorted(df.iloc[1:].stack().unique())
     
     # Generate a histogram for each question
-    for col in df.columns:
+    for col in students_answers_df.columns:
         # Initialize the layout: two columns
         col1, col2 = st.columns(2)
 
@@ -23,7 +25,7 @@ def create_ctt_report(df):
             fig, ax = plt.subplots(figsize=(8, 6))
             
             # Count the answers, including missing categories
-            answers = df[col].value_counts().reindex(all_options, fill_value=0)
+            answers = students_answers_df[col].value_counts().reindex(all_options, fill_value=0)
             
             sns.barplot(x=answers.index, y=answers.values, ax=ax, palette="viridis")
 
@@ -43,37 +45,100 @@ def create_ctt_report(df):
 
         # Display the data for this item in the right column
         with col2:
-            st.subheader(f'Data for {col}')
-            st.dataframe(answers.reset_index().rename(columns={'index': 'Answer', col: 'Count'}))
-
+            st.subheader(f'CTT Metrics for {col}')
+            question_metrics = ctt_metrics[ctt_metrics['Question'] == col]
+            st.table(question_metrics[['Difficulty Rate', 'Discrimination Rate', 'Cronbach\'s Alpha']])
     return report
 
-def plot_item_histogram_with_answer(df, item_index):
-    """
-    Plots a histogram for a selected item with the correct answer highlighted.
+# import pandas as pd
+# import matplotlib.pyplot as plt
+# import seaborn as sns
+# import streamlit as st
 
-    Parameters:
-    df (pd.DataFrame): The dataset containing the responses.
-    item_index (int): The index of the item (column) to analyze.
+def calculate_difficulty_rate(responses, correct_answer):
+    """Calculates the difficulty rate for a given question."""
+    return (responses == correct_answer).mean()
 
-    Returns:
-    None: The function directly plots the histogram.
-    """
-    # The first row contains the correct answers
-    correct_answer = df.iloc[0, item_index]
+def calculate_discrimination_rate(responses, correct_answer, scores):
+    """Calculates the discrimination rate for a given question."""
+    upper_group = responses[scores >= scores.median()]
+    lower_group = responses[scores < scores.median()]
+    return (upper_group == correct_answer).mean() - (lower_group == correct_answer).mean()
+
+def calculate_cronbach_alpha(responses, correct_answer, scores):
+    """Calculates Cronbach's alpha for a given question."""
+    item_scores = (responses == correct_answer).astype(int)
+    return pearsonr(item_scores, scores)[0]
+
+def calculate_ctt_metrics(df):
+    """Calculates all CTT metrics for each question in the dataset."""
+    correct_answers = df.iloc[0]
+    students_answers_df = df.iloc[1:]
+    scores = (students_answers_df == correct_answers).sum(axis=1)
+
+    metrics = {
+        'Question': [],
+        'Difficulty Rate': [],
+        'Discrimination Rate': [],
+        'Cronbach\'s Alpha': []
+    }
     
-    # Select the item (column) and count the occurrences of each alternative
-    item_responses = df.iloc[1:, item_index]
-    counts = item_responses.value_counts(sort=False)
+    for col in students_answers_df.columns:
+        
+        correct_answer = correct_answers[col]
+        responses = students_answers_df[col]
+        
+        metrics['Difficulty Rate'].append(calculate_difficulty_rate(responses, correct_answer))
+        metrics['Discrimination Rate'].append(calculate_discrimination_rate(responses, correct_answer, scores))
+        metrics['Cronbach\'s Alpha'].append(calculate_cronbach_alpha(responses, correct_answer, scores))
+        metrics['Question'].append(col)
+
+    return pd.DataFrame(metrics)
+
+# def create_ctt_report(df):
+#     """Generates the CTT report with histograms and metrics."""
+#     # Generate CTT metrics
+#     ctt_metrics = calculate_ctt_metrics(df)
+
+#     # Assuming the first row contains the correct answers
+#     correct_answers = df.iloc[0]
+#     report = []
     
-    # Create a color map for the bars
-    colors = ['blue' if alt != correct_answer else 'green' for alt in counts.index]
+#     # Extract all unique options from the dataset (excluding the first column)
+#     all_options = sorted(df.iloc[1:].stack().unique())
     
-    # Plot the histogram
-    plt.figure(figsize=(10, 6))
-    counts.plot(kind='bar', color=colors)
-    plt.title(f'Distribution of Responses for Item {item_index + 1}')
-    plt.xlabel('Alternatives')
-    plt.ylabel('Number of Students')
-    plt.xticks(rotation=0)
-    plt.show()
+#     # Generate a histogram for each question
+#     for col in df.columns:
+#         # Initialize the layout: two columns
+#         col1, col2 = st.columns(2)
+
+#         # Plot the histogram in the left column
+#         with col1:
+#             fig, ax = plt.subplots(figsize=(8, 6))
+            
+#             # Count the answers, including missing categories
+#             answers = df[col].value_counts().reindex(all_options, fill_value=0)
+            
+#             sns.barplot(x=answers.index, y=answers.values, ax=ax, palette="viridis")
+
+#             # Highlight the correct answer
+#             correct_answer = correct_answers[col]
+#             if correct_answer in all_options:
+#                 ax.bar(all_options.index(correct_answer), answers[correct_answer], color='red', alpha=0.7, label='Correct Answer')
+
+#             ax.set_title(f'Question: {col}')
+#             ax.set_xlabel('Answer')
+#             ax.set_ylabel('Number of Responses')
+#             ax.set_xticks(range(len(all_options)))
+#             ax.set_xticklabels(all_options)
+#             ax.legend()
+
+#             st.pyplot(fig)
+
+#         # Display the CTT metrics for this item in the right column
+#         with col2:
+#             st.subheader(f'CTT Metrics for {col}')
+#             question_metrics = ctt_metrics[ctt_metrics['Question'] == col]
+#             st.table(question_metrics[['Difficulty Rate', 'Discrimination Rate', 'Cronbach\'s Alpha']])
+
+#     return report

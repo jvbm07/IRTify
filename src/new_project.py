@@ -2,6 +2,11 @@ import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
 from ctt import create_ctt_report
+from irt import create_irt_report
+from dif import create_dif_report
+
+import numpy as np
+from scipy.special import expit
 
 # Function to reset the page
 def reset_page():
@@ -67,29 +72,16 @@ def calculate_scores(df):
     if df.empty:
         return None
 
-    # Drop the first row by index
-    df = df.drop(df.index[0])
-
     # The first row contains the correct answers
-    correct_answers = df.iloc[0, 1:].values  # Exclude the first column (student IDs)
-    
-    # Set the first column as the index (student IDs)
-    df.set_index(df.columns[0], inplace=True)
-    df.index.name = 'Student_ID'
-    
+    correct_answers = df.iloc[0]
+
     # Remove the first row (which contains correct answers) from the DataFrame
-    df = df[1:]
+    df = df.iloc[1:]
+    # Compare each student's answers to the correct answers and calculate scores
+    scores = df.apply(lambda row: sum(row == correct_answers), axis=1)
     
-    # Get the responses and compare them to correct answers
-    responses = df.values
-    scores = []
-
-    for response in responses:
-        score = sum([r == c for r, c in zip(response, correct_answers)])
-        scores.append(score)
-
     # Create a DataFrame with the results
-    scores_df = pd.DataFrame({'Score': scores}, index=df.index)
+    scores_df = pd.DataFrame({'Score': scores})
     return scores_df
 
 # Function to generate a histogram for a selected item
@@ -152,19 +144,62 @@ with tab2:
         st.write("No data uploaded.")
 
 # Tab 3: IRT Analysis
+# Function to calculate the Item Characteristic Curve (ICC)
+def calculate_icc(theta, a, b, c=0):
+    """
+    Calculate the probability of a correct response based on IRT.
+    
+    Parameters:
+    - theta: Ability level of the respondent
+    - a: Discrimination parameter (slope)
+    - b: Difficulty parameter (location of the curve)
+    - c: Guessing parameter (lower asymptote), default is 0 (for 2PL or 1PL models)
+    
+    Returns:
+    - Probability of a correct response (P(theta)).
+    """
+    # 3PL Model: P(theta) = c + (1 - c) / (1 + exp(-a * (theta - b)))
+    return c + (1 - c) / (1 + np.exp(-a * (theta - b)))
+
+
 with tab3:
     st.header("IRT Analysis Dashboard")
     if st.session_state.df is not None:
-        # Your IRT analysis code goes here
-        st.write("IRT Analysis Results will be displayed here.")
+        # Create IRT Report
+        if st.button("Create IRT Report"):
+            report = create_irt_report(st.session_state.df)
+            for img in report:
+                st.markdown(img, unsafe_allow_html=True)
     else:
         st.write("No data uploaded.")
 
 # Tab 4: DIF Analysis
+
+def calculate_dif():
+    # Generate x values greater than 0
+    x = np.linspace(0.1, 10, 100)
+    
+    # Generate two slightly different sigmoid curves (logistic function)
+    y1 = expit(x - 5)  # Sigmoid curve 1
+    y2 = expit(x - 4.5)  # Sigmoid curve 2 (slightly shifted)
+
+    return x, y1, y2
 with tab4:
+
     st.header("DIF Analysis Dashboard")
     if st.session_state.df is not None:
-        # Your DIF analysis code goes here
-        st.write("DIF Analysis Results will be displayed here.")
+        df = st.session_state.df
+        
+        # Allow the user to select a column for grouping
+        group_column = st.selectbox("Select the column for group analysis:", options=df.columns)
+        
+        # Create DIF Report if a column is selected and button is clicked
+        if st.button("Create DIF Report"):
+            if group_column:
+                report = create_dif_report(df, group_column)
+                for img in report:
+                    st.markdown(img, unsafe_allow_html=True)
+            else:
+                st.write("Please select a valid column for group analysis.")
     else:
         st.write("No data uploaded.")

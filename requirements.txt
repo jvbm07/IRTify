@@ -4,4 +4,4 @@ matplotlib
 seaborn
 opencv-python
 numpy
-
+scipy
