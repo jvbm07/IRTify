@@ -1,0 +1,5 @@
+- estou chamando algumas funcoes de novo, como a create ctt report no network analysis
+seria interessante verificar se ja existe no session state pra nao criar de novo
+
+- deixar colorido as linhas 1 e 2 do df pra lembrar o formato
+

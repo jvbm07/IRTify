@@ -1,9 +1,11 @@
 import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
-from ctt import create_ctt_report
+from ctt import create_ctt_report, calculate_ctt_metrics
 from irt import create_irt_report
 from dif import create_dif_report
+from semantic import create_semantic_report, map_questions_to_topics, load_files
+from network import create_network_report
 
 import numpy as np
 from scipy.special import expit
@@ -13,11 +15,17 @@ def reset_page():
     st.session_state.uploaded_file = None
     st.session_state.df = None
     st.session_state.home = True
+    st.session_state.questions_file = None
+    st.session_state.topics_file = None
 
 
 # Initialize session state
 if 'uploaded_file' not in st.session_state:
     st.session_state.uploaded_file = None
+if 'questions_file' not in st.session_state:
+    st.session_state.questions_file = None
+if 'topics_file' not in st.session_state:
+    st.session_state.topics_file = None
 if 'df' not in st.session_state:
     st.session_state.df = None
 if 'home' not in st.session_state:
@@ -66,23 +74,40 @@ if st.session_state.home:
     st.stop()
 
 # Create tabs
-tab1, tab2, tab3, tab4 = st.tabs(["Dataset", "CTT Analysis", "IRT Analysis", "DIF Analysis"])
+tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs(["Dataset", "CTT Analysis", "IRT Analysis", "DIF Analysis", "Semantic Analysis", "Network Analysis"])
 
 def calculate_scores(df):
     if df.empty:
         return None
 
     # The first row contains the correct answers
-    correct_answers = df.iloc[0]
+    correct_answers = df.iloc[1]
 
     # Remove the first row (which contains correct answers) from the DataFrame
-    df = df.iloc[1:]
+    df = df.iloc[2:]
     # Compare each student's answers to the correct answers and calculate scores
     scores = df.apply(lambda row: sum(row == correct_answers), axis=1)
     
     # Create a DataFrame with the results
     scores_df = pd.DataFrame({'Score': scores})
     return scores_df
+
+def plot_scores(scores):
+    plt.figure(figsize=(10, 6))
+    
+    # Determine the minimum and maximum scores for bin creation
+    min_score = scores["Score"].min()
+    max_score = scores["Score"].max()
+    
+    # Create bins for the histogram
+    bins = range(min_score, max_score + 2)  # +2 to include the maximum score
+    
+    plt.hist(scores["Score"], bins=bins, color='skyblue', edgecolor='black', width=0.8)
+    plt.title("Histogram of Scores")
+    plt.xlabel("Scores")
+    plt.ylabel("Frequency")
+    
+    st.pyplot(plt)
 
 # Function to generate a histogram for a selected item
 def plot_item_histogram(df, item_index):
@@ -99,27 +124,42 @@ def plot_item_histogram(df, item_index):
     st.pyplot(plt)
 
 with tab1:
-    # Streamlit app code
     st.header("Dataset")
-    uploaded_file = st.file_uploader("Upload CSV", type=["csv"])
-
+    
+    # Main dataset file upload
+    
+    uploaded_file = st.file_uploader("Upload Main CSV (Required)", type=["csv"])
     if uploaded_file is not None:
         st.session_state.uploaded_file = uploaded_file
-
         st.session_state.df = pd.read_csv(uploaded_file, header=None)
         st.session_state.df.set_index(st.session_state.df.columns[0], inplace=True)
     
-    if st.session_state.df is not None:
+    if "df" in st.session_state:
         st.dataframe(st.session_state.df)
-        
-        # Calculate and display scores
+
+        # Calculate scores button
         if st.button("Calculate Scores"):
             scores = calculate_scores(st.session_state.df)
             if scores is not None:
                 st.write("Scores for each student:")
                 st.dataframe(scores)
+                plot_scores(scores)
     else:
         st.write("No file uploaded.")
+    
+    # Optional additional file uploads for semantic analysis
+    st.subheader("Optional Files for Semantic Analysis")
+    
+    # Optional questions CSV file
+    questions_file = st.file_uploader("Upload Questions CSV (Optional)", type="csv")
+    if questions_file:
+        st.session_state.questions_file = questions_file
+
+    # Optional topics TXT file
+    topics_file = st.file_uploader("Upload Topics TXT (Optional)", type="txt")
+    if topics_file:
+        st.session_state.topics_file = topics_file
+
 
 # Tab 2: CTT Analysis
 with tab2:
@@ -203,3 +243,25 @@ with tab4:
                 st.write("Please select a valid column for group analysis.")
     else:
         st.write("No data uploaded.")
+
+with tab5:  # Tab 5: Semantic Analysis
+    st.header("Semantic Analysis Dashboard")
+    
+    # Check if optional files for semantic analysis are available
+    if st.session_state.questions_file is not None and st.session_state.topics_file is not None:
+        if st.button("Create Semantic Report"):
+            create_semantic_report(st.session_state.questions_file, st.session_state.topics_file)
+    else:
+        st.write("Upload the Questions CSV and Topics TXT files in Tab 1 to enable Semantic Analysis.")
+
+with tab6:
+    if st.session_state.df is not None and st.session_state.questions_file is not None and st.session_state.topics_file is not None:
+        if st.button("Create Network Report"):
+            questions_df, topics = load_files(st.session_state.questions_file, st.session_state.topics_file)
+            mapped_df = map_questions_to_topics(questions_df, topics)
+            ctt_metrics = calculate_ctt_metrics(st.session_state.df)
+    
+            report_message = create_network_report(ctt_metrics, mapped_df)
+            st.success(report_message)
+    else:
+        st.write("Metrics or questions data is not available.")

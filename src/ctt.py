@@ -46,8 +46,8 @@ def create_ctt_report(df):
         # Display the data for this item in the right column
         with col2:
             st.subheader(f'CTT Metrics for {col}')
-            question_metrics = ctt_metrics[ctt_metrics['Question'] == col]
-            st.table(question_metrics[['Difficulty Rate', 'Discrimination Rate', 'Cronbach\'s Alpha']])
+            question_metrics = ctt_metrics[ctt_metrics['question_number'] == col]
+            st.table(question_metrics[['difficulty-rate', 'discrimination-rate', 'cronbachs-alpha']])
     return report
 
 # import pandas as pd
@@ -72,15 +72,15 @@ def calculate_cronbach_alpha(responses, correct_answer, scores):
 
 def calculate_ctt_metrics(df):
     """Calculates all CTT metrics for each question in the dataset."""
-    correct_answers = df.iloc[0]
-    students_answers_df = df.iloc[1:]
+    correct_answers = df.iloc[1]
+    students_answers_df = df.iloc[2:]
     scores = (students_answers_df == correct_answers).sum(axis=1)
 
     metrics = {
-        'Question': [],
-        'Difficulty Rate': [],
-        'Discrimination Rate': [],
-        'Cronbach\'s Alpha': []
+        'question_number': [],
+        'difficulty-rate': [],
+        'discrimination-rate': [],
+        'cronbachs-alpha': []
     }
     
     for col in students_answers_df.columns:
@@ -88,10 +88,10 @@ def calculate_ctt_metrics(df):
         correct_answer = correct_answers[col]
         responses = students_answers_df[col]
         
-        metrics['Difficulty Rate'].append(calculate_difficulty_rate(responses, correct_answer))
-        metrics['Discrimination Rate'].append(calculate_discrimination_rate(responses, correct_answer, scores))
-        metrics['Cronbach\'s Alpha'].append(calculate_cronbach_alpha(responses, correct_answer, scores))
-        metrics['Question'].append(col)
+        metrics['difficulty-rate'].append(calculate_difficulty_rate(responses, correct_answer))
+        metrics['discrimination-rate'].append(calculate_discrimination_rate(responses, correct_answer, scores))
+        metrics['cronbachs-alpha'].append(calculate_cronbach_alpha(responses, correct_answer, scores))
+        metrics['question_number'].append(col)
 
     return pd.DataFrame(metrics)
 

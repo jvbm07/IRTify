@@ -59,8 +59,8 @@ import streamlit as st
 # Assuming calculate_irt_metrics is defined elsewhere
 def create_irt_report(df):
     # Assuming the first row contains the correct answers
-    correct_answers = df.iloc[0].tolist()
-    students_answers_df = df.iloc[1:].reset_index(drop=True)
+    correct_answers = df.iloc[1].tolist()
+    students_answers_df = df.iloc[2:].reset_index(drop=True)
     irt_metrics_df = calculate_irt_metrics(correct_answers, students_answers_df.values.tolist())
 
     # Convert to a list for report

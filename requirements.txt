@@ -5,3 +5,8 @@ seaborn
 opencv-python
 numpy
 scipy
+scikit-learn
+langchain 
+openai
+langchain-community
+networkx
