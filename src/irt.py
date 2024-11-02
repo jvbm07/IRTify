@@ -9,7 +9,13 @@ def calculate_difficulty(correct_answers, responses):
     """Calculates the difficulty parameter for each item as the percentage of correct responses."""
     difficulties = []
     for i in range(len(correct_answers)):
-        correct_count = sum(1 for response in responses if response[i] == correct_answers[i])
+        # correct_count = sum(1 for response in responses if response[i] == correct_answers[i])
+        correct_count = 0
+        for response in responses:
+            is_correct = response[i] == correct_answers[i]
+            if is_correct:
+                correct_count += 1
+            # print(f"Response: {response[i]}, Correct Answer: {correct_answers[i]}, Is Correct: {is_correct}")
         difficulty = correct_count / len(responses)
         difficulties.append(difficulty)
     return difficulties

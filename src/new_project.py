@@ -6,6 +6,7 @@ from irt import create_irt_report
 from dif import create_dif_report
 from semantic import create_semantic_report, map_questions_to_topics, load_files
 from network import create_network_report
+from student_report import generate_student_report
 
 import numpy as np
 from scipy.special import expit
@@ -17,6 +18,8 @@ def reset_page():
     st.session_state.home = True
     st.session_state.questions_file = None
     st.session_state.topics_file = None
+    st.session_state.mapped_df = None
+    st.session_state.info_file = None
 
 
 # Initialize session state
@@ -26,8 +29,12 @@ if 'questions_file' not in st.session_state:
     st.session_state.questions_file = None
 if 'topics_file' not in st.session_state:
     st.session_state.topics_file = None
+if 'info_file' not in st.session_state:
+    st.session_state.info_file = None
 if 'df' not in st.session_state:
     st.session_state.df = None
+if 'mapped_df' not in st.session_state:
+    st.session_state.mapped_df = None
 if 'home' not in st.session_state:
     st.session_state.home = True  # Start on the home page by default
 # Set up the page configuration
@@ -74,7 +81,7 @@ if st.session_state.home:
     st.stop()
 
 # Create tabs
-tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs(["Dataset", "CTT Analysis", "IRT Analysis", "DIF Analysis", "Semantic Analysis", "Network Analysis"])
+tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs(["Dataset", "CTT Analysis", "IRT Analysis", "DIF Analysis", "Semantic Analysis", "Network Analysis", "Student Report"])
 
 def calculate_scores(df):
     if df.empty:
@@ -229,14 +236,16 @@ with tab4:
     st.header("DIF Analysis Dashboard")
     if st.session_state.df is not None:
         df = st.session_state.df
-        
-        # Allow the user to select a column for grouping
-        group_column = st.selectbox("Select the column for group analysis:", options=df.columns)
+        info_file = st.file_uploader("Upload Students Info CSV", type="csv")
+        if info_file:
+            st.session_state.info_file = pd.read_csv(info_file)
+            # Allow the user to select a column for grouping
+            group_column = st.selectbox("Select the column for group analysis:", options=st.session_state.info_file.columns)
         
         # Create DIF Report if a column is selected and button is clicked
         if st.button("Create DIF Report"):
             if group_column:
-                report = create_dif_report(df, group_column)
+                report = create_dif_report(st.session_state.df, st.session_state.info_file, group_column)
                 for img in report:
                     st.markdown(img, unsafe_allow_html=True)
             else:
@@ -260,8 +269,13 @@ with tab6:
             questions_df, topics = load_files(st.session_state.questions_file, st.session_state.topics_file)
             mapped_df = map_questions_to_topics(questions_df, topics)
             ctt_metrics = calculate_ctt_metrics(st.session_state.df)
-    
+
+            st.session_state.mapped_df = mapped_df
             report_message = create_network_report(ctt_metrics, mapped_df)
             st.success(report_message)
     else:
         st.write("Metrics or questions data is not available.")
+
+with tab7:
+    if st.button("Generate Student Report"):
+        generate_student_report(st.session_state.df, st.session_state.mapped_df)
