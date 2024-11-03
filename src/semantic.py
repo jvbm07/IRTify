@@ -23,7 +23,15 @@ def map_questions_to_topics(questions_df, topics):
     """Map each question to one or more topics using LangChain for intent classification."""
     # Prepare mapping for each question
     mapping = {}
+    progress_text = "Mapping operation in progress. Please wait."
+    my_bar = st.progress(0, text=progress_text)
+    percent_complete = 0
+    total_len = len(questions_df)
+    pace = 1/total_len
     for idx, row in questions_df.iterrows():
+        my_bar.progress(percent_complete + pace, text=progress_text)
+        percent_complete += pace
+
         question_text = row['statement'] + " " + " ".join(row[['option_1', 'option_2', 'option_3', 'option_4']].dropna())
         
         # Create a prompt for topic classification
@@ -41,6 +49,7 @@ def map_questions_to_topics(questions_df, topics):
         identified_topics = response.strip().split(', ')  # Assumes model returns comma-separated topics
         mapping[row['question_number']] = identified_topics
 
+    my_bar.empty()
     questions_df['mapped_topics'] = questions_df['question_number'].map(mapping)
     return questions_df
 

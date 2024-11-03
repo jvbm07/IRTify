@@ -5,7 +5,7 @@ from ctt import create_ctt_report, calculate_ctt_metrics
 from irt import create_irt_report
 from dif import create_dif_report
 from semantic import create_semantic_report, map_questions_to_topics, load_files
-from network import create_network_report
+from network import create_network_report, create_full_network
 from student_report import generate_student_report
 
 import numpy as np
@@ -33,8 +33,12 @@ if 'info_file' not in st.session_state:
     st.session_state.info_file = None
 if 'df' not in st.session_state:
     st.session_state.df = None
+if 'scores' not in st.session_state:
+    st.session_state.scores = None
 if 'mapped_df' not in st.session_state:
     st.session_state.mapped_df = None
+if 'question_info_df' not in st.session_state:
+    st.session_state.question_info_df = None
 if 'home' not in st.session_state:
     st.session_state.home = True  # Start on the home page by default
 # Set up the page configuration
@@ -83,21 +87,34 @@ if st.session_state.home:
 # Create tabs
 tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs(["Dataset", "CTT Analysis", "IRT Analysis", "DIF Analysis", "Semantic Analysis", "Network Analysis", "Student Report"])
 
-def calculate_scores(df):
-    if df.empty:
+def highlight_rows(row):
+    if row.name == 0:  # First row (index 0)
+        return ['background-color: lightblue'] * len(row)
+    elif row.name == 1:  # Second row (index 1)
+        return ['background-color: lightgreen'] * len(row)
+    else:
+        return [''] * len(row)  # No color for other rows
+
+def calculate_scores(answer_sheet_df):
+    if answer_sheet_df.empty:
         return None
 
-    # The first row contains the correct answers
-    correct_answers = df.iloc[1]
+    answer_sheet_df.reset_index(inplace=True)
+    # Separate the correct answers and student responses
+    correct_answers = answer_sheet_df.iloc[1, 1:]  # Assumes second row has correct answers, ignoring first column
+    student_responses_df = answer_sheet_df.iloc[2:, 1:]  # Remaining rows are student responses
 
-    # Remove the first row (which contains correct answers) from the DataFrame
-    df = df.iloc[2:]
-    # Compare each student's answers to the correct answers and calculate scores
-    scores = df.apply(lambda row: sum(row == correct_answers), axis=1)
-    
-    # Create a DataFrame with the results
-    scores_df = pd.DataFrame({'Score': scores})
-    return scores_df
+    # Create a new DataFrame to store 1s and 0s for correct/incorrect answers
+    result_df = student_responses_df.apply(lambda row: row == correct_answers, axis=1).astype(int)
+    # Calculate and add the score for each student
+    result_df['Score'] = result_df.iloc[:].sum(axis=1)
+
+    # Add the student IDs back to the result DataFrame
+    result_df.insert(0, 'student_id', answer_sheet_df.iloc[2:, 0].values)
+
+    result_df.reset_index(inplace=True, drop=True)
+
+    return result_df
 
 def plot_scores(scores):
     plt.figure(figsize=(10, 6))
@@ -141,13 +158,22 @@ with tab1:
         st.session_state.df = pd.read_csv(uploaded_file, header=None)
         st.session_state.df.set_index(st.session_state.df.columns[0], inplace=True)
     
-    if "df" in st.session_state:
-        st.dataframe(st.session_state.df)
+    if st.session_state.df is not None:
+        styled_df = st.session_state.df.reset_index()
+        st.dataframe(
+            styled_df.style
+            .applymap(lambda _: "background-color: lightblue", subset=pd.IndexSlice[styled_df.index[0:1], :])  # First row in blue
+            .applymap(lambda _: "background-color: lightgreen", subset=pd.IndexSlice[styled_df.index[1:2], :])  # Second row in green
+            .applymap(lambda _: "background-color: yellow", subset=pd.IndexSlice[styled_df.index[2:], styled_df.columns[0]])  # First column from third row onward in yellow
+        )
+
+
 
         # Calculate scores button
         if st.button("Calculate Scores"):
             scores = calculate_scores(st.session_state.df)
             if scores is not None:
+                st.session_state.scores = scores
                 st.write("Scores for each student:")
                 st.dataframe(scores)
                 plot_scores(scores)
@@ -272,10 +298,11 @@ with tab6:
 
             st.session_state.mapped_df = mapped_df
             report_message = create_network_report(ctt_metrics, mapped_df)
+            create_full_network(st.session_state.scores, st.session_state.question_info_df, st.session_state.info_file)
             st.success(report_message)
     else:
         st.write("Metrics or questions data is not available.")
 
 with tab7:
     if st.button("Generate Student Report"):
-        generate_student_report(st.session_state.df, st.session_state.mapped_df)
+        generate_student_report('r4',st.session_state.scores, st.session_state.mapped_df, st.session_state.info_file)

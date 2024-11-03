@@ -6,14 +6,14 @@ from scipy.stats import pearsonr
 
 def create_ctt_report(df):
     # Assuming the first row contains the correct answers
-    correct_answers = df.iloc[0]
-    students_answers_df = df.iloc[1:]
+    correct_answers = df.iloc[1]
+    students_answers_df = df.iloc[2:]
     ctt_metrics = calculate_ctt_metrics(df)
 
     report = []
     
     # Extract all unique options from the dataset (excluding the first column)
-    all_options = sorted(df.iloc[1:].stack().unique())
+    all_options = sorted(df.iloc[2:].stack().unique())
     
     # Generate a histogram for each question
     for col in students_answers_df.columns:

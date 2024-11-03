@@ -122,6 +122,7 @@ def create_network_report(metrics_df, questions_df, difficulty_col='difficulty-r
         plt.figure(figsize=(12, 6))
         
         st.dataframe(merged_df)
+        st.session_state.question_info_df = merged_df
         G = generate_bipartite_graph(merged_df)
         plot_bipartite_graph(G)
         # G = generate_topic_graph(merged_df)
@@ -131,3 +132,72 @@ def create_network_report(metrics_df, questions_df, difficulty_col='difficulty-r
     else:
         return "Error: Merged DataFrame is empty. Check your input data."
 
+def create_full_network(student_scores_df, question_info_df, student_dif_df):
+
+    # Sample data frame structure:
+    # student_scores_df: columns -> ['student_id', 'question_id', 'got_it_right', 'total_score']
+    # question_info_df: columns -> ['question_id', 'topic', 'difficulty']
+    # student_dif_df: columns -> ['student_id', 'class']
+
+    # Initialize the graph
+    G = nx.Graph()
+
+    # Step 1: Add student nodes with color by class and size by total score
+    student_classes_dict = student_dif_df.set_index('student_id')['gender'].to_dict()
+    class_colors = {'M': 'red', 'F': 'blue'}  # Example colors for each class
+
+    # Set a size scaling factor for student nodes based on their total score
+    for _, row in student_scores_df[['student_id', 'Score']].drop_duplicates().iterrows():
+        student_id = row['student_id']
+        total_score = row['Score']
+        student_class = student_classes_dict.get(student_id, 'Unknown')
+        color = class_colors.get(student_class, 'gray')
+        size = 50 + 20 * total_score  # Adjust base size and scaling factor as needed
+        G.add_node(student_id, type='student', color=color, size=size)
+
+    # Step 2: Add question nodes with size by difficulty
+    difficulty_dict = question_info_df.set_index('question_number')['difficulty-rate'].to_dict()
+    for question_id, difficulty in difficulty_dict.items():
+        G.add_node(question_id, type='question', color='green', size=500 * difficulty)  # Scale the difficulty for visibility
+
+    # Step 3: Add topic nodes
+    topics = question_info_df['mapped_topics'].explode().unique()
+    for topic in topics:
+        G.add_node(topic, type='topic', color='orange')  # Color all topics the same for simplicity
+
+    for _, row in student_scores_df.iterrows():
+        student_id = row['student_id']
+        for question_number in student_scores_df.columns[1:]:  # Skip 'student_id' column
+            if row[question_number] == 1:  # Check if the student got the question right
+                G.add_edge(student_id, question_number)
+
+    # Step 5: Add edges between questions and their topics
+    for _, row in question_info_df.iterrows():
+        question = row['question_number']
+        topics = row['mapped_topics']
+        
+        # Check if topics is a list, then iterate to create an edge for each topic
+        if isinstance(topics, list):
+            for topic in topics:
+                G.add_edge(question, topic)
+        else:
+            G.add_edge(question, topics)  # if it's a single topic, directly add the edge
+
+    # Visualization
+    # Create a color and size map based on node attributes
+    node_colors = [G.nodes[node].get('color', 'gray') for node in G.nodes]
+    node_sizes = [G.nodes[node].get('size', 100) for node in G.nodes]  # Default size if 'size' attribute not set
+
+    # Draw the network
+    plt.figure(figsize=(12, 12))
+    pos = nx.spring_layout(G, seed=42)  # Use spring layout for better separation
+
+    nx.draw_networkx_nodes(G, pos, node_color=node_colors, node_size=node_sizes)
+    nx.draw_networkx_edges(G, pos, alpha=0.5)
+    nx.draw_networkx_labels(G, pos, font_size=8, font_color="black")
+
+    plt.title("Student-Question-Topic Network with Score-based Node Sizes")
+    plt.show()
+
+    st.pyplot(plt)  # Display the figure in Streamlit
+    plt.clf()  # Clear the figure to avoid overlapping in future plots
