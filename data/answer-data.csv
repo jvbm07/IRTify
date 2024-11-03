@@ -1,0 +1,17 @@
+question_number,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15
+true_answers,a,a,b,c,d,b,a,c,d,e,a,b,c,c,d
+r1,a,a,b,c,d,b,a,c,d,e,a,b,c,c,d
+r2,d,c,b,c,d,b,b,a,d,e,c,c,a,d,e
+r3,c,b,d,a,d,b,a,c,c,d,e,a,b,c,d
+r4,b,c,b,c,e,a,b,b,a,c,d,e,b,a,b
+r5,a,b,b,d,d,b,c,c,d,e,b,b,c,a,c
+r6,c,a,c,b,e,a,c,c,d,e,a,b,d,a,b
+r7,b,a,b,a,d,c,a,c,b,c,d,e,c,a,b
+r8,a,b,d,c,d,b,d,b,c,e,a,b,c,d,e
+r9,c,c,b,c,d,a,b,c,d,a,b,a,c,d,c
+r10,d,a,b,a,c,b,a,c,d,e,a,b,c,a,b
+r11,b,b,a,c,d,c,a,d,c,e,b,c,a,c,d
+r12,a,d,b,c,b,a,c,e,d,e,a,b,c,d,e
+r13,c,c,b,a,b,d,b,c,d,a,e,a,b,d,c
+r14,b,a,c,d,e,c,a,c,a,d,e,b,c,c,d
+r15,a,c,d,b,b,a,c,d,c,e,a,b,a,e,c

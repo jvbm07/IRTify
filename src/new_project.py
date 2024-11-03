@@ -1,9 +1,12 @@
 import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
-from ctt import create_ctt_report
+from ctt import create_ctt_report, calculate_ctt_metrics
 from irt import create_irt_report
 from dif import create_dif_report
+from semantic import create_semantic_report, map_questions_to_topics, load_files
+from network import create_network_report, create_full_network
+from student_report import generate_student_report
 
 import numpy as np
 from scipy.special import expit
@@ -13,13 +16,29 @@ def reset_page():
     st.session_state.uploaded_file = None
     st.session_state.df = None
     st.session_state.home = True
+    st.session_state.questions_file = None
+    st.session_state.topics_file = None
+    st.session_state.mapped_df = None
+    st.session_state.info_file = None
 
 
 # Initialize session state
 if 'uploaded_file' not in st.session_state:
     st.session_state.uploaded_file = None
+if 'questions_file' not in st.session_state:
+    st.session_state.questions_file = None
+if 'topics_file' not in st.session_state:
+    st.session_state.topics_file = None
+if 'info_file' not in st.session_state:
+    st.session_state.info_file = None
 if 'df' not in st.session_state:
     st.session_state.df = None
+if 'scores' not in st.session_state:
+    st.session_state.scores = None
+if 'mapped_df' not in st.session_state:
+    st.session_state.mapped_df = None
+if 'question_info_df' not in st.session_state:
+    st.session_state.question_info_df = None
 if 'home' not in st.session_state:
     st.session_state.home = True  # Start on the home page by default
 # Set up the page configuration
@@ -66,23 +85,53 @@ if st.session_state.home:
     st.stop()
 
 # Create tabs
-tab1, tab2, tab3, tab4 = st.tabs(["Dataset", "CTT Analysis", "IRT Analysis", "DIF Analysis"])
+tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs(["Dataset", "CTT Analysis", "IRT Analysis", "DIF Analysis", "Semantic Analysis", "Network Analysis", "Student Report"])
 
-def calculate_scores(df):
-    if df.empty:
+def highlight_rows(row):
+    if row.name == 0:  # First row (index 0)
+        return ['background-color: lightblue'] * len(row)
+    elif row.name == 1:  # Second row (index 1)
+        return ['background-color: lightgreen'] * len(row)
+    else:
+        return [''] * len(row)  # No color for other rows
+
+def calculate_scores(answer_sheet_df):
+    if answer_sheet_df.empty:
         return None
 
-    # The first row contains the correct answers
-    correct_answers = df.iloc[0]
+    answer_sheet_df.reset_index(inplace=True)
+    # Separate the correct answers and student responses
+    correct_answers = answer_sheet_df.iloc[1, 1:]  # Assumes second row has correct answers, ignoring first column
+    student_responses_df = answer_sheet_df.iloc[2:, 1:]  # Remaining rows are student responses
 
-    # Remove the first row (which contains correct answers) from the DataFrame
-    df = df.iloc[1:]
-    # Compare each student's answers to the correct answers and calculate scores
-    scores = df.apply(lambda row: sum(row == correct_answers), axis=1)
+    # Create a new DataFrame to store 1s and 0s for correct/incorrect answers
+    result_df = student_responses_df.apply(lambda row: row == correct_answers, axis=1).astype(int)
+    # Calculate and add the score for each student
+    result_df['Score'] = result_df.iloc[:].sum(axis=1)
+
+    # Add the student IDs back to the result DataFrame
+    result_df.insert(0, 'student_id', answer_sheet_df.iloc[2:, 0].values)
+
+    result_df.reset_index(inplace=True, drop=True)
+
+    return result_df
+
+def plot_scores(scores):
+    plt.figure(figsize=(10, 6))
     
-    # Create a DataFrame with the results
-    scores_df = pd.DataFrame({'Score': scores})
-    return scores_df
+    # Determine the minimum and maximum scores for bin creation
+    min_score = scores["Score"].min()
+    max_score = scores["Score"].max()
+    
+    # Create bins for the histogram
+    bins = range(min_score, max_score + 2)  # +2 to include the maximum score
+    
+    plt.hist(scores["Score"], bins=bins, color='skyblue', edgecolor='black', width=0.8)
+    plt.title("Histogram of Scores")
+    plt.xlabel("Scores")
+    plt.ylabel("Frequency")
+    
+    st.pyplot(plt)
 
 # Function to generate a histogram for a selected item
 def plot_item_histogram(df, item_index):
@@ -99,27 +148,51 @@ def plot_item_histogram(df, item_index):
     st.pyplot(plt)
 
 with tab1:
-    # Streamlit app code
     st.header("Dataset")
-    uploaded_file = st.file_uploader("Upload CSV", type=["csv"])
-
+    
+    # Main dataset file upload
+    
+    uploaded_file = st.file_uploader("Upload Main CSV (Required)", type=["csv"])
     if uploaded_file is not None:
         st.session_state.uploaded_file = uploaded_file
-
         st.session_state.df = pd.read_csv(uploaded_file, header=None)
         st.session_state.df.set_index(st.session_state.df.columns[0], inplace=True)
     
     if st.session_state.df is not None:
-        st.dataframe(st.session_state.df)
-        
-        # Calculate and display scores
+        styled_df = st.session_state.df.reset_index()
+        st.dataframe(
+            styled_df.style
+            .applymap(lambda _: "background-color: lightblue", subset=pd.IndexSlice[styled_df.index[0:1], :])  # First row in blue
+            .applymap(lambda _: "background-color: lightgreen", subset=pd.IndexSlice[styled_df.index[1:2], :])  # Second row in green
+            .applymap(lambda _: "background-color: yellow", subset=pd.IndexSlice[styled_df.index[2:], styled_df.columns[0]])  # First column from third row onward in yellow
+        )
+
+
+
+        # Calculate scores button
         if st.button("Calculate Scores"):
             scores = calculate_scores(st.session_state.df)
             if scores is not None:
+                st.session_state.scores = scores
                 st.write("Scores for each student:")
                 st.dataframe(scores)
+                plot_scores(scores)
     else:
         st.write("No file uploaded.")
+    
+    # Optional additional file uploads for semantic analysis
+    st.subheader("Optional Files for Semantic Analysis")
+    
+    # Optional questions CSV file
+    questions_file = st.file_uploader("Upload Questions CSV (Optional)", type="csv")
+    if questions_file:
+        st.session_state.questions_file = questions_file
+
+    # Optional topics TXT file
+    topics_file = st.file_uploader("Upload Topics TXT (Optional)", type="txt")
+    if topics_file:
+        st.session_state.topics_file = topics_file
+
 
 # Tab 2: CTT Analysis
 with tab2:
@@ -189,17 +262,47 @@ with tab4:
     st.header("DIF Analysis Dashboard")
     if st.session_state.df is not None:
         df = st.session_state.df
-        
-        # Allow the user to select a column for grouping
-        group_column = st.selectbox("Select the column for group analysis:", options=df.columns)
+        info_file = st.file_uploader("Upload Students Info CSV", type="csv")
+        if info_file:
+            st.session_state.info_file = pd.read_csv(info_file)
+            # Allow the user to select a column for grouping
+            group_column = st.selectbox("Select the column for group analysis:", options=st.session_state.info_file.columns)
         
         # Create DIF Report if a column is selected and button is clicked
         if st.button("Create DIF Report"):
             if group_column:
-                report = create_dif_report(df, group_column)
+                report = create_dif_report(st.session_state.df, st.session_state.info_file, group_column)
                 for img in report:
                     st.markdown(img, unsafe_allow_html=True)
             else:
                 st.write("Please select a valid column for group analysis.")
     else:
         st.write("No data uploaded.")
+
+with tab5:  # Tab 5: Semantic Analysis
+    st.header("Semantic Analysis Dashboard")
+    
+    # Check if optional files for semantic analysis are available
+    if st.session_state.questions_file is not None and st.session_state.topics_file is not None:
+        if st.button("Create Semantic Report"):
+            create_semantic_report(st.session_state.questions_file, st.session_state.topics_file)
+    else:
+        st.write("Upload the Questions CSV and Topics TXT files in Tab 1 to enable Semantic Analysis.")
+
+with tab6:
+    if st.session_state.df is not None and st.session_state.questions_file is not None and st.session_state.topics_file is not None:
+        if st.button("Create Network Report"):
+            questions_df, topics = load_files(st.session_state.questions_file, st.session_state.topics_file)
+            mapped_df = map_questions_to_topics(questions_df, topics)
+            ctt_metrics = calculate_ctt_metrics(st.session_state.df)
+
+            st.session_state.mapped_df = mapped_df
+            report_message = create_network_report(ctt_metrics, mapped_df)
+            create_full_network(st.session_state.scores, st.session_state.question_info_df, st.session_state.info_file)
+            st.success(report_message)
+    else:
+        st.write("Metrics or questions data is not available.")
+
+with tab7:
+    if st.button("Generate Student Report"):
+        generate_student_report('r4',st.session_state.scores, st.session_state.mapped_df, st.session_state.info_file)

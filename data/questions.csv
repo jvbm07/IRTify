@@ -1,0 +1,16 @@
+question_number,statement,option_1,option_2,option_3,option_4
+1,"What is the capital of France?",Berlin,Madrid,Paris,Rome
+2,"What is the powerhouse of the cell?",Nucleus,Ribosome,Mitochondria,Lysosome
+3,"Which gas is essential for human respiration?",Oxygen,Nitrogen,Hydrogen,Carbon Dioxide
+4,"What is Newton's second law of motion?",F = ma,E = mc^2,V = IR,a^2 + b^2 = c^2
+5,"What is the largest planet in our solar system?",Earth,Mars,Jupiter,Saturn
+6,"Who wrote 'Pride and Prejudice'?",Charles Dickens,Jane Austen,William Shakespeare,Emily Bronte
+7,"Which era is known as the Age of Enlightenment?",Renaissance,Enlightenment,Industrial Revolution,Medieval
+8,"In which year did World War II end?",1945,1939,1965,1918
+9,"What is the formula for the area of a circle?",2πr,πr^2,πd^2,r^2
+10,"What is the primary function of the respiratory system?",Circulation,Digestion,Respiration,Excretion
+11,"Which software is commonly used for data analysis in Python?",Excel,R,SQL,Pandas
+12,"What element does 'O' represent on the periodic table?",Osmium,Gold,Oxygen,Iron
+13,"Who proposed the theory of relativity?",Isaac Newton,Albert Einstein,Nikola Tesla,Marie Curie
+14,"What is the significance of the Magna Carta?",Declaration of Independence,Bill of Rights,Constitutional Rights,Universal Suffrage
+15,"What is the purpose of photosynthesis?",Energy production,Water storage,Gas exchange,Food production
