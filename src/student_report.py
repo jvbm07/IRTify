@@ -3,7 +3,6 @@ import streamlit as st
 
 def generate_student_report(student_id, student_scores_df, question_info_df, class_info_df):
     report = {}
-
     # 1. Basic Information
     student_data = student_scores_df[student_scores_df['student_id'] == student_id]
     if student_data.empty:
@@ -27,7 +26,13 @@ def generate_student_report(student_id, student_scores_df, question_info_df, cla
     topic_correct_counts = {}
     topic_total_counts = {}
     for question in student_data.columns[1:]:
-        question_topics = question_info_df[question_info_df['question_number'] == question]['mapped_topics'].values[0]
+        # Get the topic(s) mapped to the question if it exists in question_info_df
+        question_topics = question_info_df[question_info_df['question_number'] == question]['mapped_topics']
+
+        if not question_topics.empty:
+            question_topics = question_topics.values[0]
+        else:
+            question_topics = "Topic not found"  # or set to None, or handle it as needed
         correct = student_data[question].values[0] == 1
         for topic in question_topics:
             topic_total_counts[topic] = topic_total_counts.get(topic, 0) + 1
@@ -41,9 +46,9 @@ def generate_student_report(student_id, student_scores_df, question_info_df, cla
     # 3. Difficulty Analysis
     high_diff_correct = []
     low_diff_incorrect = []
-    for question in student_data.columns[1:]:
+    for question in student_data.columns[1:-1]:
         correct = student_data[question].values[0] == 1
-        difficulty = question_info_df[question_info_df['question_number'] == question]['difficulty'].values[0]
+        difficulty = question_info_df[question_info_df['question_number'] == question]['difficulty-rate'].values[0]
         if correct and difficulty > 0.7:  # Arbitrary high difficulty threshold
             high_diff_correct.append(question)
         elif not correct and difficulty <= 0.3:  # Arbitrary low difficulty threshold
@@ -56,16 +61,5 @@ def generate_student_report(student_id, student_scores_df, question_info_df, cla
     scores = student_scores_df.iloc[:, 1:].sum(axis=1).values
     percentile_rank = (scores < total_score).sum() / len(scores) * 100
     report['Percentile Ranking'] = f"{percentile_rank:.2f}%"
-    
-    # Classify performance category
-    if percentile_rank > 90:
-        report['Performance Category'] = "Excellent"
-    elif percentile_rank > 70:
-        report['Performance Category'] = "Above Average"
-    elif percentile_rank > 50:
-        report['Performance Category'] = "Average"
-    else:
-        report['Performance Category'] = "Needs Improvement"
-    
     st.dataframe(report)
     return report
