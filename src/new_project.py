@@ -309,11 +309,9 @@ with tab7:
         student_ids = st.session_state.df.reset_index().iloc[2:, 0]  # Extract IDs from row 3 onward in the first column
         for student_id in student_ids:
             st.markdown(f"## Report for {student_id}")
-            report = generate_student_report(student_id,st.session_state.scores, st.session_state.question_info_df, st.session_state.info_file)
-            st.dataframe(report)
+            generate_student_report(student_id,st.session_state.scores, st.session_state.question_info_df, st.session_state.info_file)
+
 with tab8:
     if st.button("Generate Explanation"):
         questions_file = pd.read_csv(st.session_state.questions_file)
         explanations = create_explanations(questions_file,st.session_state.df)
-        for question, explanation in explanations.items():
-            st.markdown(f"Question: {question}\nExplanation: {explanation}\n")

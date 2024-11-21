@@ -17,6 +17,11 @@ Verificar se dataframes ja existem e pedir pra inserir ou calcular caso contrari
     relatorio de estudantes (estudantes) - student report
 
 - explicacao de questoes (RAG)
+
+- explicar melhor 'difficulty rate' -> relatorio e study plan consideram que quanto maior, mais dificil
+
+- explanation.py está pegando errado o gabarito(pulando os primeiros)
+
 ## Pos congresso
 
 - analise longitudinal
