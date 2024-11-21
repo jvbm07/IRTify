@@ -1,5 +1,5 @@
 question_number,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15
-true_answers,a,a,b,c,d,b,a,c,d,e,a,b,c,c,d
+true_answers,c,c,a,a,c,b,b,a,b,c,d,c,b,c,d
 r1,a,a,b,c,d,b,a,c,d,e,a,b,c,c,d
 r2,d,c,b,c,d,b,b,a,d,e,c,c,a,d,e
 r3,c,b,d,a,d,b,a,c,c,d,e,a,b,c,d

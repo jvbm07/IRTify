@@ -1,4 +1,29 @@
 - estou chamando algumas funcoes de novo, como a create ctt report no network analysis
 seria interessante verificar se ja existe no session state pra nao criar de novo
 
+- criar network report precisa que outros botoes sejam clicados. 
+Verificar se dataframes ja existem e pedir pra inserir ou calcular caso contrario
+
+- tratar erros. API key demorando -> mostrar na tela
+
 - gender hardcoded
+- semantic analysis hardcoded - option  1, 2, 3 ...
+
+- gerar student report
+
+- gerar relatorio geral: dividir em 3 partes:
+    relatorio de desempenho geral da turma (gestao) - score, evolucao
+    relatorio da prova (professores) - tri, tct, network
+    relatorio de estudantes (estudantes) - student report
+
+- explicacao de questoes (RAG)
+
+- explicar melhor 'difficulty rate' -> relatorio e study plan consideram que quanto maior, mais dificil
+
+- explanation.py está pegando errado o gabarito(pulando os primeiros)
+
+## Pos congresso
+
+- analise longitudinal
+- autenticacao de usuarios (gestao, professor, alunos)
+

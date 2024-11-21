@@ -7,6 +7,7 @@ from dif import create_dif_report
 from semantic import create_semantic_report, map_questions_to_topics, load_files
 from network import create_network_report, create_full_network
 from student_report import generate_student_report
+from explanation import create_explanations
 
 import numpy as np
 from scipy.special import expit
@@ -85,7 +86,7 @@ if st.session_state.home:
     st.stop()
 
 # Create tabs
-tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs(["Dataset", "CTT Analysis", "IRT Analysis", "DIF Analysis", "Semantic Analysis", "Network Analysis", "Student Report"])
+tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8 = st.tabs(["Dataset", "CTT Analysis", "IRT Analysis", "DIF Analysis", "Semantic Analysis", "Network Analysis", "Student Report", "Explanations"])
 
 def highlight_rows(row):
     if row.name == 0:  # First row (index 0)
@@ -305,4 +306,12 @@ with tab6:
 
 with tab7:
     if st.button("Generate Student Report"):
-        generate_student_report('r4',st.session_state.scores, st.session_state.mapped_df, st.session_state.info_file)
+        student_ids = st.session_state.df.reset_index().iloc[2:, 0]  # Extract IDs from row 3 onward in the first column
+        for student_id in student_ids:
+            st.markdown(f"## Report for {student_id}")
+            generate_student_report(student_id,st.session_state.scores, st.session_state.question_info_df, st.session_state.info_file)
+
+with tab8:
+    if st.button("Generate Explanation"):
+        questions_file = pd.read_csv(st.session_state.questions_file)
+        explanations = create_explanations(questions_file,st.session_state.df)
