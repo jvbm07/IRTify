@@ -298,9 +298,9 @@ with tab6:
             ctt_metrics = calculate_ctt_metrics(st.session_state.df)
 
             st.session_state.mapped_df = mapped_df
-            report_message = create_network_report(ctt_metrics, mapped_df)
+            st.session_state.question_info_df = create_network_report(ctt_metrics, mapped_df)
+            st.dataframe(st.session_state.question_info_df)
             create_full_network(st.session_state.scores, st.session_state.question_info_df, st.session_state.info_file)
-            st.success(report_message)
     else:
         st.write("Metrics or questions data is not available.")
 
