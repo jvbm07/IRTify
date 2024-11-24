@@ -115,7 +115,13 @@ def create_network_report(metrics_df, questions_df, difficulty_col='difficulty-r
     # Merge the metrics DataFrame with the questions DataFrame on the question column
     print(metrics_df)
     print(questions_df)
+    # Adjust the question_number in metrics_df to match the range in questions_df
+    metrics_df['question_number'] += questions_df['question_number'].min()
+
+    # Merge after transformation
     merged_df = pd.merge(metrics_df, questions_df[[question_col, topic_col]], on=question_col)
+
+    # merged_df = pd.merge(metrics_df, questions_df[[question_col, topic_col]], on=question_col)
 
     # Check if the merged DataFrame is not empty
     if not merged_df.empty:
@@ -127,7 +133,7 @@ def create_network_report(metrics_df, questions_df, difficulty_col='difficulty-r
         plot_bipartite_graph(G)
         # G = generate_topic_graph(merged_df)
         # plot_topic_graph(G)
-        return "Network report created successfully."
+        return merged_df
     
     else:
         return "Error: Merged DataFrame is empty. Check your input data."
@@ -143,7 +149,7 @@ def create_full_network(student_scores_df, question_info_df, student_dif_df):
     G = nx.Graph()
 
     # Step 1: Add student nodes with color by class and size by total score
-    student_classes_dict = student_dif_df.set_index('student_id')['gender'].to_dict()
+    student_classes_dict = student_dif_df.set_index('student_id')['TP_SEXO'].to_dict()
     class_colors = {'M': 'red', 'F': 'blue'}  # Example colors for each class
 
     # Set a size scaling factor for student nodes based on their total score

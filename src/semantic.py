@@ -32,7 +32,7 @@ def map_questions_to_topics(questions_df, topics):
         my_bar.progress(percent_complete + pace, text=progress_text)
         percent_complete += pace
 
-        question_text = row.iloc[1] + " " + " ".join(row.iloc[2:].dropna().astype(str))
+        question_text = str(row.iloc[1]) + " " + " ".join(row.iloc[2:].dropna().astype(str))
         
         # Create a prompt for topic classification
         prompt = (

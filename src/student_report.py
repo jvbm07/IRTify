@@ -10,7 +10,7 @@ def generate_student_report(student_id, student_scores_df, question_info_df, cla
     if student_data.empty:
         return f"Student ID {student_id} not found."
     
-    student_class = class_info_df[class_info_df['student_id'] == student_id]['gender'].values[0]
+    student_class = class_info_df[class_info_df['student_id'] == student_id]['TP_SEXO'].values[0]
     total_score = student_data['Score'].values[0]
     total_questions = len(student_data.columns) - 2
     correct_percentage = (total_score / total_questions) * 100
@@ -21,7 +21,7 @@ def generate_student_report(student_id, student_scores_df, question_info_df, cla
     report['Correct Answer Percentage'] = f"{correct_percentage:.2f}%"
 
     # Class average comparison
-    class_avg_score = student_scores_df[student_scores_df['student_id'].isin(class_info_df[class_info_df['gender'] == student_class]['student_id'])].iloc[:, 1:].sum(axis=1).mean()
+    class_avg_score = student_scores_df[student_scores_df['student_id'].isin(class_info_df[class_info_df['TP_SEXO'] == student_class]['student_id'])].iloc[:, 1:].sum(axis=1).mean()
     report['Class Average Score'] = class_avg_score
 
     # 2. Topic Mastery
