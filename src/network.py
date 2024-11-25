@@ -147,6 +147,7 @@ def create_full_network(student_scores_df, question_info_df, student_dif_df):
 
     # Initialize the graph
     G = nx.Graph()
+    question_info_df['question_number'] -= question_info_df['question_number'].min()
 
     # Step 1: Add student nodes with color by class and size by total score
     student_classes_dict = student_dif_df.set_index('student_id')['TP_SEXO'].to_dict()

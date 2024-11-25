@@ -62,6 +62,12 @@ def plot_topic_distribution(mapped_df):
     ax.set_title("Topic Distribution in Assessment Questions")
     ax.set_xlabel("Topics")
     ax.set_ylabel("Frequency")
+    # Rotate x-axis labels vertically
+    ax.set_xticklabels(ax.get_xticklabels(), rotation=90)
+
+    # Save the plot as an image
+    plt.savefig("network/topic_distribution.png", dpi=300, bbox_inches='tight')
+    plt.close(fig)  # Close the plot to free up memory
     st.pyplot(fig)
 
 def display_question_mapping(mapped_df):
